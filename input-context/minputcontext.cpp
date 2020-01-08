@@ -352,7 +352,8 @@ bool MInputContext::filterEvent(const QEvent *event)
 
 QRectF MInputContext::keyboardRect() const
 {
-    return keyboardRectangle;
+    return QRectF();
+    //return keyboardRectangle;
 }
 
 bool MInputContext::isAnimating() const
