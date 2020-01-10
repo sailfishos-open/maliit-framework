@@ -22,6 +22,7 @@
 #include <QTimer>
 #include <QPointer>
 #include <QRect>
+#include <QDBusInterface>
 
 #include <qpa/qplatforminputcontext.h>
 
@@ -90,6 +91,7 @@ public Q_SLOTS:
 private Q_SLOTS:
     void sendHideInputMethod();
     void updateServerOrientation(Qt::ScreenOrientation orientation);
+    void updateContainerOrientation(int angle);
 
     void onDBusDisconnection();
     void onDBusConnection();
@@ -130,6 +132,9 @@ private:
     // Parameter valid set to false on failure.
     int cursorStartPosition(bool *valid);
 
+    // Get angle of the container orientation
+    int getOrientationAngle();
+
     static bool debug;
 
     DBusServerConnection *imServer;
@@ -146,6 +151,9 @@ private:
     bool redirectKeys; // redirect all hw key events to the input method or not
     QLocale inputLocale;
     bool currentFocusAcceptsInput;
+
+    QDBusInterface *containerConnectionInterface; // connection to Flatpak container
+    int containerOrientation=0;
 };
 
 #endif

@@ -83,12 +83,29 @@ MInputContext::MInputContext()
     }
 
     imServer = new DBusServerConnection(address);
-    
+
     sipHideTimer.setSingleShot(true);
     sipHideTimer.setInterval(SoftwareInputPanelHideTimer);
     connect(&sipHideTimer, SIGNAL(timeout()), SLOT(sendHideInputMethod()));
 
     connectInputMethodServer();
+
+    // Flatpak container
+    QString flAddress = QString::fromLatin1(qgetenv("FLATPAK_MALIIT_CONTAINER_DBUS"));
+    if (!flAddress.isEmpty()) {
+        if (debug) qDebug() << "Maliit connecting to Flatpak container at " << flAddress;
+        QDBusConnection conn = QDBusConnection::connectToPeer(flAddress,
+                                                              "flatpak_container");
+        containerConnectionInterface = new QDBusInterface("org.flatpak.sailfish.container", "/",
+                                                          "org.container",
+                                                          conn,
+                                                          this);
+        if (containerConnectionInterface->isValid()) {
+            conn.connect("", "/", "org.container", "orientationChanged",
+                         this, SLOT(updateContainerOrientation(int)));
+            updateContainerOrientation(getOrientationAngle());
+        }
+    }
 }
 
 MInputContext::~MInputContext()
@@ -266,6 +283,7 @@ void MInputContext::update(Qt::InputMethodQueries queries)
     imServer->updateWidgetInformation(stateInformation, effectiveFocusChange);
 }
 
+// Not used with Flatpak container
 void MInputContext::updateServerOrientation(Qt::ScreenOrientation orientation)
 {
     if (active) {
@@ -273,6 +291,25 @@ void MInputContext::updateServerOrientation(Qt::ScreenOrientation orientation)
     }
 }
 
+// Update Flatpak container info for the keyboard
+void MInputContext::updateContainerOrientation(int angle)
+{
+    containerOrientation = angle;
+    if (active) {
+        imServer->appOrientationChanged(angle);
+    }
+}
+
+// Query Flatpak container for orientation angle
+int MInputContext::getOrientationAngle()
+{
+    if (containerConnectionInterface && containerConnectionInterface->isValid()) {
+        QVariant orientation = containerConnectionInterface->property("orientation");
+        if (orientation.isValid())
+            return orientation.toInt();
+    }
+    return 0; // unknown angle
+}
 
 void MInputContext::setFocusObject(QObject *focused)
 {
@@ -282,16 +319,16 @@ void MInputContext::setFocusObject(QObject *focused)
 
     QWindow *newFocusWindow = qGuiApp->focusWindow();
     if (newFocusWindow != window.data()) {
-       if (window) {
-           disconnect(window.data(), SIGNAL(contentOrientationChanged(Qt::ScreenOrientation)),
-                      this, SLOT(updateServerOrientation(Qt::ScreenOrientation)));
-       }
+       // if (window) {
+       //     disconnect(qGuiApp->primaryScreen(), &QScreen::orientationChanged,
+       //                this, &MInputContext::updateServerOrientation);
+       // }
 
        window = newFocusWindow;
        if (window) {
-           connect(window.data(), SIGNAL(contentOrientationChanged(Qt::ScreenOrientation)),
-                   this, SLOT(updateServerOrientation(Qt::ScreenOrientation)));
-           updateServerOrientation(window->contentOrientation());
+           // connect(qGuiApp->primaryScreen(), &QScreen::orientationChanged,
+           //         this, &MInputContext::updateServerOrientation);
+           updateContainerOrientation(containerOrientation);
        }
     }
 
@@ -301,7 +338,7 @@ void MInputContext::setFocusObject(QObject *focused)
     if (!active && currentFocusAcceptsInput) {
         imServer->activateContext();
         active = true;
-        updateServerOrientation(newFocusWindow->contentOrientation());
+        updateContainerOrientation(containerOrientation);
     }
 
     if (active && (currentFocusAcceptsInput || oldAcceptInput)) {
