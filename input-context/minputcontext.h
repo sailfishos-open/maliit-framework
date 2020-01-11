@@ -91,6 +91,7 @@ public Q_SLOTS:
 private Q_SLOTS:
     void sendHideInputMethod();
     void updateServerOrientation(Qt::ScreenOrientation orientation);
+    void updateContainerActiveState(bool state);
     void updateContainerOrientation(int angle);
 
     void onDBusDisconnection();
@@ -132,8 +133,11 @@ private:
     // Parameter valid set to false on failure.
     int cursorStartPosition(bool *valid);
 
+    // Get whether the container is active
+    bool getContainerActiveState();
+
     // Get angle of the container orientation
-    int getOrientationAngle();
+    int getContainerOrientationAngle();
 
     static bool debug;
 
@@ -153,6 +157,7 @@ private:
     bool currentFocusAcceptsInput;
 
     QDBusInterface *containerConnectionInterface; // connection to Flatpak container
+    bool containerActive=true;
     int containerOrientation=0;
 };
 

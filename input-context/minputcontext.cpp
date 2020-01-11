@@ -101,9 +101,12 @@ MInputContext::MInputContext()
                                                           conn,
                                                           this);
         if (containerConnectionInterface->isValid()) {
+            conn.connect("", "/", "org.container", "activeStateChanged",
+                         this, SLOT(updateContainerActiveState(bool)));
+            updateContainerActiveState(getContainerActiveState());
             conn.connect("", "/", "org.container", "orientationChanged",
                          this, SLOT(updateContainerOrientation(int)));
-            updateContainerOrientation(getOrientationAngle());
+            updateContainerOrientation(getContainerOrientationAngle());
         }
     }
 }
@@ -291,17 +294,38 @@ void MInputContext::updateServerOrientation(Qt::ScreenOrientation orientation)
     }
 }
 
-// Update Flatpak container info for the keyboard
+// Update Flatpak container info for the keyboard: state
+void MInputContext::updateContainerActiveState(bool state)
+{
+    if (containerActive && !state) {
+        sendHideInputMethod();
+        imInitiatedHide(); // to remove focus in addition
+    }
+    containerActive = state;
+}
+
+// Update Flatpak container info for the keyboard: orientation
 void MInputContext::updateContainerOrientation(int angle)
 {
     containerOrientation = angle;
-    if (active) {
+    if (containerActive && active) {
         imServer->appOrientationChanged(angle);
     }
 }
 
+// Query Flatpak container for whether its active
+bool MInputContext::getContainerActiveState()
+{
+    if (containerConnectionInterface && containerConnectionInterface->isValid()) {
+        QVariant state = containerConnectionInterface->property("activeState");
+        if (state.isValid())
+            return state.toBool();
+    }
+    return 0; // unknown angle
+}
+
 // Query Flatpak container for orientation angle
-int MInputContext::getOrientationAngle()
+int MInputContext::getContainerOrientationAngle()
 {
     if (containerConnectionInterface && containerConnectionInterface->isValid()) {
         QVariant orientation = containerConnectionInterface->property("orientation");
