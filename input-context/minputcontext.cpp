@@ -641,6 +641,12 @@ void MInputContext::updateInputMethodArea(const QRect &rect)
         if (wasVisible != isInputPanelVisible()) {
             emitInputPanelVisibleChanged();
         }
+
+        if (containerConnectionInterface && containerConnectionInterface->isValid()) {
+            containerConnectionInterface->call("keyboardRect", true,
+                                               keyboardRectangle.x(), keyboardRectangle.y(),
+                                               keyboardRectangle.width(), keyboardRectangle.height());
+        }
     }
 }
 
