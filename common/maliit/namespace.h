@@ -16,6 +16,7 @@
 #define MALIIT_NAMESPACE_H
 
 #include <QMetaType>
+#include <QList>
 #include <QSharedPointer>
 
 //! \ingroup common

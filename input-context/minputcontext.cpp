@@ -676,7 +676,7 @@ void MInputContext::onInvokeAction(const QString &action, const QKeySequence &se
             | Qt::MetaModifier | Qt::KeypadModifier;
 
     for (int i = 0; i < sequence.count(); i++) {
-        const int key = sequence[i] & ~AllModifiers;
+        const char key = sequence[i] & ~AllModifiers;
         const int modifiers = sequence[i] & AllModifiers;
         QString text("");
         if (modifiers == Qt::NoModifier || modifiers == Qt::ShiftModifier) {
